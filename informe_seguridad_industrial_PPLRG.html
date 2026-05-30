@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Análisis de Seguridad Industrial — Proyecto Parque Lineal Río Guaire</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,400&family=Instrument+Serif:ital@0;1&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0d0e0f;
+  --bg2: #131415;
+  --bg3: #1a1b1d;
+  --bg4: #222326;
+  --border: rgba(255,255,255,0.07);
+  --border2: rgba(255,255,255,0.12);
+  --text: #e8e6e1;
+  --text2: #9a9790;
+  --text3: #5c5a55;
+  --red: #e84040;
+  --red-dim: rgba(232,64,64,0.12);
+  --red-glow: rgba(232,64,64,0.25);
+  --amber: #e8a230;
+  --amber-dim: rgba(232,162,48,0.10);
+  --blue: #4a9be8;
+  --blue-dim: rgba(74,155,232,0.10);
+  --teal: #2ec4a0;
+  --teal-dim: rgba(46,196,160,0.10);
+  --accent: #e84040;
+  --mono: 'DM Mono', monospace;
+  --serif: 'Instrument Serif', Georgia, serif;
+  --sans: 'Syne', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── NOISE TEXTURE ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.035'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+/* ── SCANLINES ── */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 0;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border2);
+}
+
+.hero-bg {
+  position: absolute;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 80% 60% at 50% 0%, rgba(232,64,64,0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 40% at 20% 80%, rgba(232,64,64,0.04) 0%, transparent 60%),
+    linear-gradient(180deg, #0a0b0c 0%, var(--bg) 100%);
+}
+
+.hero-grid {
+  position: absolute;
+  inset: 0;
+  background-image: 
+    linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
+  background-size: 60px 60px;
+  mask-image: linear-gradient(180deg, rgba(0,0,0,0.3) 0%, transparent 70%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  padding: 6rem 4rem 4rem;
+  max-width: 1200px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.hero-eyebrow {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.15em;
+  color: var(--red);
+  text-transform: uppercase;
+  margin-bottom: 2.5rem;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.hero-eyebrow::before {
+  content: '';
+  display: inline-block;
+  width: 24px;
+  height: 1px;
+  background: var(--red);
+}
+
+.hero-clasificacion {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--red-dim);
+  border: 1px solid var(--red-glow);
+  border-radius: 2px;
+  padding: 6px 14px;
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--red);
+  margin-bottom: 2rem;
+}
+.hero-clasificacion .blink {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--red);
+  animation: blink 1.4s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+.hero-title {
+  font-family: var(--serif);
+  font-size: clamp(3rem, 7vw, 6.5rem);
+  font-style: italic;
+  line-height: 1.0;
+  color: var(--text);
+  margin-bottom: 1.5rem;
+  letter-spacing: -0.02em;
+}
+.hero-title em {
+  font-style: normal;
+  color: var(--red);
+}
+
+.hero-subtitle {
+  font-family: var(--sans);
+  font-size: 14px;
+  color: var(--text2);
+  max-width: 560px;
+  line-height: 1.7;
+  margin-bottom: 3rem;
+  font-weight: 400;
+}
+
+.hero-meta {
+  display: flex;
+  gap: 3rem;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--border);
+  padding-top: 2rem;
+}
+.meta-item { display: flex; flex-direction: column; gap: 4px; }
+.meta-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.12em; color: var(--text3); text-transform: uppercase; }
+.meta-val { font-family: var(--mono); font-size: 13px; color: var(--text2); }
+.meta-val.danger { color: var(--red); }
+
+/* ── NAV SIDEBAR ── */
+.layout {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  min-height: 100vh;
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 0 8rem;
+  gap: 0;
+}
+
+.sidebar {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  padding: 3rem 2rem;
+  border-right: 1px solid var(--border);
+  scrollbar-width: none;
+}
+.sidebar::-webkit-scrollbar { display: none; }
+
+.sidebar-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 1.5rem;
+}
+
+.nav-section { margin-bottom: 2rem; }
+.nav-section-title {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 0.5rem;
+  padding-left: 12px;
+  border-left: 1px solid var(--border);
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 12px;
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--text2);
+  text-decoration: none;
+  transition: all 0.15s;
+  border-left: 2px solid transparent;
+  margin-bottom: 2px;
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.04); border-left-color: var(--border2); }
+.nav-link.active { color: var(--text); background: var(--red-dim); border-left-color: var(--red); }
+.nav-link .num {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  min-width: 16px;
+}
+.nav-dot {
+  width: 5px; height: 5px; border-radius: 50%;
+  flex-shrink: 0; margin-left: auto;
+}
+.dot-red { background: var(--red); }
+.dot-amber { background: var(--amber); }
+.dot-blue { background: var(--blue); }
+.dot-teal { background: var(--teal); }
+
+.sidebar-verdict {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: var(--red-dim);
+  border: 1px solid var(--red-glow);
+  border-radius: 4px;
+}
+.sidebar-verdict-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--red);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.sidebar-verdict-text {
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.6;
+}
+
+/* ── MAIN CONTENT ── */
+.main {
+  padding: 3rem 3.5rem;
+  max-width: 900px;
+}
+
+/* ── STAT STRIP ── */
+.stat-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 4rem;
+}
+.stat-cell {
+  background: var(--bg2);
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.stat-n {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 500;
+  line-height: 1;
+}
+.stat-n.red { color: var(--red); }
+.stat-n.amber { color: var(--amber); }
+.stat-n.white { color: var(--text); }
+.stat-u {
+  font-size: 11px;
+  color: var(--text3);
+  line-height: 1.4;
+}
+
+/* ── SECTION ── */
+.section {
+  margin-bottom: 5rem;
+  scroll-margin-top: 2rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.section-num {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text3);
+  padding-top: 6px;
+  white-space: nowrap;
+}
+.section-title {
+  font-family: var(--serif);
+  font-size: clamp(1.5rem, 3vw, 2.2rem);
+  font-style: italic;
+  line-height: 1.15;
+  color: var(--text);
+}
+.section-title em { font-style: normal; color: var(--red); }
+
+/* ── FINDING CARDS ── */
+.finding {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.5rem;
+  margin-bottom: 10px;
+  position: relative;
+  transition: border-color 0.2s;
+}
+.finding:hover { border-color: var(--border2); }
+
+.finding.level-critical { border-left: 3px solid var(--red); }
+.finding.level-high     { border-left: 3px solid var(--amber); }
+.finding.level-medium   { border-left: 3px solid var(--blue); }
+.finding.level-info     { border-left: 3px solid var(--teal); }
+
+.finding-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: .75rem;
+}
+.finding-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.4;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 2px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.badge-critical { background: var(--red-dim); color: var(--red); border: 1px solid rgba(232,64,64,0.3); }
+.badge-high     { background: var(--amber-dim); color: var(--amber); border: 1px solid rgba(232,162,48,0.3); }
+.badge-medium   { background: var(--blue-dim); color: var(--blue); border: 1px solid rgba(74,155,232,0.3); }
+.badge-ok       { background: var(--teal-dim); color: var(--teal); border: 1px solid rgba(46,196,160,0.3); }
+
+.finding-body {
+  font-size: 13px;
+  color: var(--text2);
+  line-height: 1.7;
+  margin-bottom: 0.75rem;
+}
+.finding-norm {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--text3);
+  border-top: 1px solid var(--border);
+  padding-top: .75rem;
+  margin-top: .75rem;
+}
+.finding-norm span { color: var(--amber); }
+
+/* ── NORMA CARDS ── */
+.norma-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 2rem;
+}
+.norma-card {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 1.25rem;
+}
+.norma-code {
+  font-family: var(--mono);
+  font-size: 18px;
+  font-weight: 500;
+  color: var(--amber);
+  margin-bottom: 4px;
+}
+.norma-name {
+  font-size: 12px;
+  color: var(--text2);
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.norma-arts {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+
+/* ── VERDICT BOX ── */
+.verdict-box {
+  background: var(--bg2);
+  border: 1px solid rgba(232,64,64,0.35);
+  border-radius: 4px;
+  padding: 2rem;
+  margin: 2rem 0;
+  position: relative;
+  overflow: hidden;
+}
+.verdict-box::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--red) 0%, transparent 100%);
+}
+.verdict-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--red);
+  margin-bottom: 1rem;
+}
+.verdict-text {
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  font-style: italic;
+  color: var(--text);
+  line-height: 1.7;
+}
+
+/* ── RISK MATRIX ── */
+.risk-matrix {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin: 1.5rem 0;
+}
+.risk-cell {
+  padding: 1rem;
+  border-radius: 3px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border: 1px solid var(--border);
+}
+.risk-cell.high { background: var(--red-dim); border-color: var(--red-glow); }
+.risk-cell.med  { background: var(--amber-dim); border-color: rgba(232,162,48,0.2); }
+.risk-cell.low  { background: var(--blue-dim); border-color: rgba(74,155,232,0.2); }
+.risk-label { font-family: var(--mono); font-size: 10px; color: var(--text3); letter-spacing: 0.1em; }
+.risk-val { font-size: 13px; color: var(--text); font-weight: 500; }
+
+/* ── LEGAL PYRAMID ── */
+.pyramid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 1.5rem 0;
+}
+.pyramid-level {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+}
+.pyramid-level:nth-child(1) { background: var(--red-dim); border-color: var(--red-glow); }
+.pyramid-level:nth-child(2) { background: rgba(232,64,64,0.07); border-color: rgba(232,64,64,0.15); }
+.pyramid-level:nth-child(3) { background: var(--amber-dim); border-color: rgba(232,162,48,0.2); }
+.pyramid-level:nth-child(4) { background: rgba(232,162,48,0.06); border-color: var(--border); }
+.pyramid-level:nth-child(5) { background: var(--bg3); border-color: var(--border); }
+.pyramid-level:nth-child(6) { background: var(--bg3); border-color: var(--border); }
+.pyramid-num { font-family: var(--mono); font-size: 10px; color: var(--text3); min-width: 28px; }
+.pyramid-norm { font-family: var(--mono); font-size: 12px; font-weight: 500; color: var(--text); min-width: 160px; }
+.pyramid-desc { font-size: 12px; color: var(--text2); }
+.pyramid-sev { margin-left: auto; }
+
+/* ── ACTION ITEMS ── */
+.action-item {
+  display: grid;
+  grid-template-columns: 48px 1fr;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  margin-bottom: 8px;
+  align-items: start;
+  transition: border-color 0.2s;
+}
+.action-item:hover { border-color: var(--teal); }
+.action-num {
+  font-family: var(--mono);
+  font-size: 22px;
+  font-weight: 300;
+  color: var(--text3);
+  line-height: 1;
+  padding-top: 2px;
+}
+.action-content {}
+.action-title { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.action-body { font-size: 12px; color: var(--text2); line-height: 1.6; margin-bottom: 8px; }
+.action-norm { font-family: var(--mono); font-size: 10px; color: var(--teal); }
+
+/* ── CONSEQUENCE BOX ── */
+.consequence {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  border-radius: 0 4px 4px 0;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 8px;
+}
+.consequence-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.consequence-body { font-size: 12px; color: var(--text2); line-height: 1.6; }
+
+/* ── QUOTE ── */
+.quote-block {
+  margin: 1.5rem 0;
+  padding: 1.25rem 1.5rem;
+  background: var(--bg3);
+  border-left: 2px solid var(--amber);
+  border-radius: 0 4px 4px 0;
+}
+.quote-text {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--text2);
+  line-height: 1.7;
+  font-style: italic;
+}
+.quote-src {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 8px;
+}
+
+/* ── FOOTER ── */
+.footer {
+  border-top: 1px solid var(--border);
+  padding: 3rem 4rem;
+  max-width: 1400px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+.footer-org { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.footer-org strong { color: var(--text2); }
+.footer-date { font-family: var(--mono); font-size: 10px; color: var(--text3); }
+
+/* ── RESPONSIVE ── */
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+  .sidebar { position: static; height: auto; border-right: none; border-bottom: 1px solid var(--border); }
+  .main { padding: 2rem 1.5rem; }
+  .hero-content { padding: 4rem 1.5rem 2.5rem; }
+  .stat-strip { grid-template-columns: 1fr 1fr; }
+  .norma-grid { grid-template-columns: 1fr; }
+  .risk-matrix { grid-template-columns: 1fr; }
+  .footer { padding: 2rem 1.5rem; }
+  .hero-meta { gap: 1.5rem; }
+}
+
+/* ── SCROLL REVEAL ── */
+.reveal { opacity: 0; transform: translateY(16px); transition: opacity 0.5s ease, transform 0.5s ease; }
+.reveal.visible { opacity: 1; transform: none; }
+
+/* ── PRINT ── */
+@media print {
+  body { background: #fff; color: #111; }
+  .sidebar { display: none; }
+  .layout { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-bg"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-content">
+    <div class="hero-eyebrow">Ciudadanos CBM · Colinas de Bello Monte · Caracas</div>
+    <div class="hero-clasificacion">
+      <span class="blink"></span>
+      NIVEL DE RIESGO: CRÍTICO — INFRAESTRUCTURA ESTRATÉGICA EN PELIGRO
+    </div>
+    <h1 class="hero-title">
+      Análisis de<br>
+      Seguridad <em>Industrial</em><br>
+      sobre Franja de<br>
+      Gasoducto PDVSA
+    </h1>
+    <p class="hero-subtitle">
+      Evaluación técnico-legal exhaustiva de la ejecución del Proyecto Parque Lineal Río Guaire sobre la franja de protección de tres ramales de gas metano de alta presión que surten a la Gran Caracas. Documentación basada en la Respuesta de Sindicatura Municipal SMB N°151 y el Acta de Inspección N°265-2026 del Ministerio de Hidrocarburos.
+    </p>
+    <div class="hero-meta">
+      <div class="meta-item">
+        <span class="meta-label">Fecha de análisis</span>
+        <span class="meta-val">30 de mayo de 2026</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Fuente primaria</span>
+        <span class="meta-val">Acta N° 265-2026 · SMB 151</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Avance de obra</span>
+        <span class="meta-val danger">45% — SIN habilitación formal</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Ramales de gas afectados</span>
+        <span class="meta-val danger">3 tuberías (10" / 4" / 2")</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Normas violadas</span>
+        <span class="meta-val danger">COVENIN + PDVSA IR-S-16 + LOPCYMAT</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar" aria-label="Índice del informe">
+    <p class="sidebar-label">Índice del informe</p>
+
+    <div class="nav-section">
+      <p class="nav-section-title">Métricas</p>
+      <a href="#estadisticas" class="nav-link"><span class="num">—</span>Cuadro de situación</a>
+    </div>
+
+    <div class="nav-section">
+      <p class="nav-section-title">Análisis técnico</p>
+      <a href="#franja" class="nav-link"><span class="num">I</span>Naturaleza de la franja<span class="nav-dot dot-red"></span></a>
+      <a href="#covenin" class="nav-link"><span class="num">II</span>Violaciones COVENIN<span class="nav-dot dot-red"></span></a>
+      <a href="#ir16" class="nav-link"><span class="num">III</span>Norma PDVSA IR-S-16<span class="nav-dot dot-red"></span></a>
+      <a href="#oficio" class="nav-link"><span class="num">IV</span>El oficio TYD-25-CA-045<span class="nav-dot dot-amber"></span></a>
+      <a href="#legal" class="nav-link"><span class="num">V</span>Marco legal vulnerado<span class="nav-dot dot-amber"></span></a>
+      <a href="#riesgo" class="nav-link"><span class="num">VI</span>Escenario de falla<span class="nav-dot dot-red"></span></a>
+      <a href="#acciones" class="nav-link"><span class="num">VII</span>Acciones inmediatas<span class="nav-dot dot-teal"></span></a>
+    </div>
+
+    <div class="sidebar-verdict">
+      <p class="sidebar-verdict-label">⬤ Conclusión fundamental</p>
+      <p class="sidebar-verdict-text">La franja de protección de un gasoducto no es una restricción urbanística. Es una zona de exclusión técnica que ningún ente municipal puede "condicionar" ni avalar.</p>
+    </div>
+  </nav>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- ESTADÍSTICAS -->
+    <section id="estadisticas" class="section">
+      <div class="stat-strip reveal">
+        <div class="stat-cell">
+          <span class="stat-n red">CRÍTICO</span>
+          <span class="stat-u">Nivel de riesgo general — franja de máxima seguridad activa con obra en curso</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-n amber">3</span>
+          <span class="stat-u">Ramales de gas metano alta presión bajo la zona de intervención activa</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-n white">45%</span>
+          <span class="stat-u">Obra ejecutada sin habilitación formal corporativa de PDVSA — riesgo consumado</span>
+        </div>
+        <div class="stat-cell">
+          <span class="stat-n red">0</span>
+          <span class="stat-u">Permisos de Trabajo Seguro (PTS) disponibles en sitio al momento de la inspección</span>
+        </div>
+      </div>
+
+      <div class="norma-grid reveal">
+        <div class="norma-card">
+          <div class="norma-code">COVENIN 2aba</div>
+          <div class="norma-name">Instalaciones para gas combustible — distanciamiento urbano</div>
+          <div class="norma-arts">Arts. de distanciamiento mínimo · VIOLADA</div>
+        </div>
+        <div class="norma-card">
+          <div class="norma-code">COVENIN 39</div>
+          <div class="norma-name">Seguridad en la industria petrolera · Comité HS</div>
+          <div class="norma-arts">Art. 40 LOPCYMAT · PTS ausente · VIOLADA</div>
+        </div>
+        <div class="norma-card">
+          <div class="norma-code">COVENIN 187</div>
+          <div class="norma-name">Colores y señales de seguridad — zona de riesgo</div>
+          <div class="norma-arts">ISO 13715 · Señalización no evidenciada</div>
+        </div>
+        <div class="norma-card">
+          <div class="norma-code">COVENIN 1040</div>
+          <div class="norma-name">Control de trabajos de excavación · tuberías subterráneas</div>
+          <div class="norma-arts">API RP 1102 · Procedimiento no certificado</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- I. NATURALEZA DE LA FRANJA -->
+    <section id="franja" class="section reveal">
+      <div class="section-header">
+        <span class="section-num">I</span>
+        <h2 class="section-title">La franja de protección:<br><em>zona de exclusión técnica,</em> no restricción urbanística</h2>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">Definición técnica según PDVSA IR-S-16</div>
+          <span class="badge badge-critical">⬤ CRÍTICO</span>
+        </div>
+        <div class="finding-body">
+          La Norma PDVSA IR-S-16 "Manejo de Riesgos en Tuberías de Gas" define la franja de protección como el área a ambos lados del eje de la tubería dentro de la cual se restringe <strong style="color:var(--text)">TODA actividad ajena a la operación y mantenimiento del sistema</strong>. Esta restricción no es discrecional ni negociable mediante condicionamientos administrativos de ningún ente municipal o regional. La franja existe porque los parámetros físicos del gas metano a alta presión determinan un radio de afectación en caso de falla que ningún acuerdo institucional puede reducir.
+        </div>
+        <div class="finding-norm">NORMA: <span>PDVSA IR-S-16 · Sección 4 — Franja de Protección</span></div>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">Las tres tuberías son infraestructura estratégica del Estado venezolano</div>
+          <span class="badge badge-critical">⬤ CRÍTICO</span>
+        </div>
+        <div class="finding-body">
+          El Acta N° 265-2026 del Ministerio de Hidrocarburos confirma oficialmente que la obra se ejecuta dentro de la franja de máxima seguridad de tres ramales: <strong style="color:var(--amber)">Ramal Caracas Lateral 10"</strong> (el ramal de mayor diámetro, que surte a una fracción crítica de la Gran Caracas), <strong style="color:var(--amber)">Gran Meliá 2"</strong> y <strong style="color:var(--amber)">CNV "Miguel Ángel" 4"</strong>. Según la Ley Orgánica de Hidrocarburos (G.O. N° 38.493), el Estado venezolano mantiene soberanía plena sobre estas instalaciones. Ningún ente municipal puede autorizar intervenciones sobre ellas.
+        </div>
+        <div class="finding-norm">FUENTE OFICIAL: <span>Acta de Inspección N° 265-2026 · Ministerio del Poder Popular de Hidrocarburos · 29/05/2026</span></div>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">La Alcaldía de Baruta carece de competencia para avalar obras sobre gasoductos de PDVSA</div>
+          <span class="badge badge-critical">INCOMPETENCIA MANIFIESTA</span>
+        </div>
+        <div class="finding-body">
+          Las competencias municipales en materia urbanística (LOPPM, Ley Orgánica de Ordenación Urbanística) no se extienden a infraestructura de hidrocarburos, cuya tutela pertenece exclusivamente al Ministerio del Poder Popular de Hidrocarburos y a PDVSA. La alianza estratégica entre la Alcaldía de Baruta y la Asociación Civil Enlace para ejecutar un proyecto urbanístico sobre gasoductos de PDVSA GAS representa una usurpación de competencias del Poder Nacional constitucionalmente garantizadas.
+        </div>
+        <div class="finding-norm">NORMA: <span>Art. 156, numeral 16 CRBV · Ley Orgánica de Hidrocarburos Arts. 3, 5 y 22</span></div>
+      </div>
+
+      <div class="verdict-box">
+        <div class="verdict-label">● CONCLUSIÓN TÉCNICO-JURÍDICA</div>
+        <p class="verdict-text">"La franja de protección de un gasoducto de alta presión no es una zona de restricción administrativa que un ente municipal pueda 'condicionar'. Es una zona de exclusión técnica definida por parámetros de ingeniería: presión de operación, diámetro del ducto, propiedades del gas metano y radio de afectación en caso de falla. Ningún oficio, alianza estratégica ni acuerdo institucional puede modificar las leyes físicas que determinan ese radio de afectación."</p>
+      </div>
+    </section>
+
+    <!-- II. COVENIN -->
+    <section id="covenin" class="section reveal">
+      <div class="section-header">
+        <span class="section-num">II</span>
+        <h2 class="section-title">Violaciones a normas<br><em>COVENIN</em> aplicables</h2>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">COVENIN 2aba — Distanciamiento mínimo para tuberías de gas en zona urbana</div>
+          <span class="badge badge-critical">⬤ VIOLACIÓN DIRECTA</span>
+        </div>
+        <div class="finding-body">
+          Esta norma establece las distancias mínimas de seguridad entre tuberías de gas metano de alta presión y cualquier obra civil en zonas urbanas. Para tuberías de 10" de diámetro a alta presión como el <strong style="color:var(--text)">Ramal Caracas Lateral</strong>, las distancias mínimas exceden con creces los 2 metros mencionados en el oficio de PDVSA GAS. Los 2 metros aplican a elementos superficiales de baja carga (bancos, luminarias, paradas); no a pilotes perforados de carga estructural. La ejecución de pilotes (PILPERCA) a las distancias actuales viola directamente esta norma.
+        </div>
+        <div class="finding-norm">NORMA: <span>COVENIN 2aba · Arts. de distanciamiento mínimo para tuberías de gas urbanas</span></div>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">PILPERCA — Los pilotes perforados representan la violación más grave</div>
+          <span class="badge badge-critical">⬤ RIESGO CATASTRÓFICO</span>
+        </div>
+        <div class="finding-body">
+          La empresa ejecutora es PILPERCA — Pilotes Perforados C.A. La actividad de perforación de pilotes de carga estructural en proximidad a tuberías de gas de alta presión genera tres riesgos de primer orden:
+          <br><br>
+          <strong style="color:var(--red)">① Perforación accidental directa</strong> — una perforación que alcance el ducto produce liberación instantánea de gas a alta presión con riesgo de ignición inmediata.<br>
+          <strong style="color:var(--amber)">② Transmisión de cargas verticales</strong> — los pilotes transfieren cargas al suelo que pueden generar desplazamientos en el eje de la tubería.<br>
+          <strong style="color:var(--amber)">③ Fatiga acumulada por vibración</strong> — el daño más insidioso. La vibración de la perforadora crea microfisuras que no son detectables visualmente y que pueden progresar durante meses antes de manifestarse como ruptura.<br><br>
+          COVENIN 2aba prohíbe este tipo de intervención sin estudios geotécnicos específicos certificados por el ente competente en hidrocarburos. No existe evidencia de tales estudios.
+        </div>
+        <div class="finding-norm">NORMA: <span>COVENIN 2aba · API RP 1102 — Cruces de tuberías bajo cargas externas</span></div>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">COVENIN 39 — Ausencia de Permiso de Trabajo Seguro (PTS) confirmada en acta oficial</div>
+          <span class="badge badge-critical">⬤ VIOLACIÓN CONFIRMADA</span>
+        </div>
+        <div class="finding-body">
+          El Acta N° 265-2026 del Ministerio de Hidrocarburos establece textualmente que al momento de la inspección no se disponía de sello/PTS en el sitio. El Permiso de Trabajo Seguro es el documento que habilita cada jornada de trabajo en zona de riesgo. Su ausencia confirma que los trabajos del 29/05/2026 se ejecutaban sin autorización operacional vigente para ese día. Esta violación es concurrente con COVENIN 39, la LOPCYMAT y la propia Norma PDVSA IR-S-16.
+        </div>
+        <div class="finding-norm">NORMA: <span>COVENIN 39 · LOPCYMAT Arts. 40 y 56 · PDVSA IR-S-16 Sección 6</span></div>
+      </div>
+
+      <div class="finding level-high">
+        <div class="finding-top">
+          <div class="finding-title">COVENIN 187 — Señalización de zona de riesgo por tuberías enterradas no evidenciada</div>
+          <span class="badge badge-high">⬤ NO REGISTRADA EN ACTA</span>
+        </div>
+        <div class="finding-body">
+          Toda zona de trabajo sobre o próxima a tuberías de gas enterradas debe señalizarse conforme a COVENIN 187 con la cromática específica para gases a presión. El Acta N° 265-2026 describe la tubería enterrada bajo la acera de 1,44 m sin mencionar señalización perimetral de zona peligrosa. Esta norma exige demarcación permanente visible durante toda la ejecución de la obra, no únicamente en los momentos de cruce de tuberías. Abarca la totalidad del tramo de 1.050 metros intervenido.
+        </div>
+        <div class="finding-norm">NORMA: <span>COVENIN 187 · ISO 13715 · PDVSA IR-S-16 Sección 4</span></div>
+      </div>
+
+      <div class="finding level-high">
+        <div class="finding-top">
+          <div class="finding-title">COVENIN 1040 — Localización de tuberías subterráneas previa a excavación: no certificada para todo el tramo</div>
+          <span class="badge badge-high">⬤ PROCEDIMIENTO NO COMPLETADO</span>
+        </div>
+        <div class="finding-body">
+          Todo trabajo de excavación en zonas con tuberías subterráneas debe comenzar con la localización y marcación física certificada de todos los ductos. El hecho de que el acta documente el hallazgo de <strong style="color:var(--text)">"dos puntos donde fue necesario realizar el cruce de la tubería de gas"</strong> durante la ejecución de la obra — y no como parte de un plan de cruce pre-diseñado — sugiere que no existía un plano as-built certificado de la ubicación exacta de todos los ductos antes de iniciar las perforaciones. Los cruces se encontraron; no se planificaron.
+        </div>
+        <div class="finding-norm">NORMA: <span>COVENIN 1040 · PDVSA N-201 · API RP 1102</span></div>
+      </div>
+    </section>
+
+    <!-- III. IR-S-16 -->
+    <section id="ir16" class="section reveal">
+      <div class="section-header">
+        <span class="section-num">III</span>
+        <h2 class="section-title">Norma PDVSA<br><em>IR-S-16</em> — Análisis de violaciones</h2>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">El nivel de autorización requerido por IR-S-16 no fue alcanzado</div>
+          <span class="badge badge-critical">⬤ LA MÁS GRAVE VIOLACIÓN</span>
+        </div>
+        <div class="finding-body">
+          La IR-S-16 establece que ninguna intervención de terceros dentro de la franja de protección puede realizarse sin autorización expresa del nivel de <strong style="color:var(--red)">Vicepresidencia de Operaciones de PDVSA GAS</strong> — no de una Dirección de Transporte y Distribución. El oficio PDVG-DIR-TYD-25-CA-045 fue emitido por la Dirección TYD, que gestiona operaciones cotidianas y NO tiene rango suficiente para habilitar obras de terceros en franjas de protección de ductos estratégicos de alta presión. La habilitación formal debió provenir del más alto nivel corporativo de PDVSA GAS.
+        </div>
+        <div class="finding-norm">NORMA: <span>PDVSA IR-S-16 · Sección 7 — Niveles de autorización para intervención de terceros</span></div>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">Los 2 metros de distanciamiento del oficio aplican a elementos superficiales — no a pilotes estructurales</div>
+          <span class="badge badge-critical">⬤ INTERPRETACIÓN ERRÓNEA APLICADA</span>
+        </div>
+        <div class="finding-body">
+          El oficio TYD establece "distanciamiento mínimo de 2 metros" para elementos como <em style="color:var(--text2)">bancos, luminarias, paradas, drenajes y aceras</em>. Esta medida corresponde a cargas superficiales de impacto mínimo sobre el suelo. Para pilotes perforados con carga estructural — como los ejecutados por PILPERCA — la IR-S-16 exige estudios geotécnicos específicos que evalúen transferencia de cargas, vibración por perforación y análisis de fatiga del ducto, con distanciamientos determinados caso a caso por el equipo multidisciplinario de PDVSA GAS. Aplicar el distanciamiento de 2 m a pilotes estructurales es una interpretación técnicamente errónea que crea una falsa sensación de cumplimiento mientras el riesgo real permanece sin evaluación.
+        </div>
+        <div class="finding-norm">NORMA: <span>PDVSA IR-S-16 Sección 5 · COVENIN 2aba · API RP 1102</span></div>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">El PTS debe estar físicamente presente en sitio durante TODA la jornada — confirmado como ausente</div>
+          <span class="badge badge-critical">⬤ VIOLACIÓN DOCUMENTADA</span>
+        </div>
+        <div class="finding-body">
+          La IR-S-16 exige que el Permiso de Trabajo Seguro esté físicamente visible y validado en el sitio de trabajo durante toda la jornada de trabajo en zona de franja de protección. El Acta N° 265-2026 documenta su ausencia con fecha y firma de dos funcionarios del Ministerio de Hidrocarburos. Esta violación activa la cláusula de suspensión establecida en el propio oficio PDVG-DIR-TYD-25-CA-045.
+        </div>
+        <div class="finding-norm">NORMA: <span>PDVSA IR-S-16 Sección 6 · LOPCYMAT Art. 56 · COVENIN 39</span></div>
+      </div>
+
+      <div class="finding level-high">
+        <div class="finding-top">
+          <div class="finding-title">Cualquier modificación del proyecto debe someterse a nueva evaluación — la obra lleva 45% con cambios no documentados</div>
+          <span class="badge badge-high">⬤ CONDICIONAMIENTO INCUMPLIDO</span>
+        </div>
+        <div class="finding-body">
+          El propio oficio TYD-25-CA-045 establece: <em style="color:var(--text2)">"En caso de modificación del proyecto, debe presentarse nuevamente para ser evaluado por el equipo multidisciplinario"</em>. El Acta N° 265-2026 describe la observación de que la obra se realiza paralela a una acera existente de 1,44 m y que en dos puntos fue necesario realizar cruces no planificados previamente. Si existe cualquier desviación del proyecto evaluado por PDVSA GAS, toda la obra debería estar paralizada hasta nueva evaluación corporativa. La obra tiene 45% de ejecución.
+        </div>
+        <div class="finding-norm">FUENTE: <span>Oficio PDVG-DIR-TYD-25-CA-045 · 20/05/2025 · Acta N° 265-2026 · 29/05/2026</span></div>
+      </div>
+    </section>
+
+    <!-- IV. EL OFICIO -->
+    <section id="oficio" class="section reveal">
+      <div class="section-header">
+        <span class="section-num">IV</span>
+        <h2 class="section-title">Por qué el oficio<br><em>TYD-25-CA-045</em> no habilita la obra</h2>
+      </div>
+
+      <div class="quote-block">
+        <p class="quote-text">"En caso de que los responsables del Proyecto PARQUE LINEAL RIO GUAIRE omitan cualquiera de los condicionamientos indicados en este oficio, se procederá a suspender el mismo inmediatamente y se aplicarán las sanciones administrativas y legales a las que se dé lugar."</p>
+        <p class="quote-src">— Oficio PDVG-DIR-TYD-25-CA-045 · PDVSA GAS · 20/05/2025</p>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">El oficio fue emitido por la Dirección TYD — rango insuficiente según IR-S-16</div>
+          <span class="badge badge-critical">⬤ VICIO DE COMPETENCIA</span>
+        </div>
+        <div class="finding-body">
+          La Dirección de Transporte y Distribución de PDVSA GAS gestiona la operación y mantenimiento cotidiano de los ductos. Las autorizaciones para intervenciones de terceros en franjas de protección de ductos de alta presión requieren nivel de Presidencia o VP Operaciones de PDVSA GAS. El oficio TYD-25-CA-045 es una comunicación de condicionamientos operativos — no una habilitación formal de la intervención.
+        </div>
+        <div class="finding-norm">NORMA: <span>PDVSA IR-S-16 Sección 7 — Jerarquía de autorización</span></div>
+      </div>
+
+      <div class="finding level-critical">
+        <div class="finding-top">
+          <div class="finding-title">Los condicionamientos del oficio ya fueron incumplidos — la suspensión procede</div>
+          <span class="badge badge-critical">⬤ CONSECUENCIA LEGAL ACTIVADA</span>
+        </div>
+        <div class="finding-body">
+          El oficio TYD exige: (1) detección previa certificada de tuberías, (2) presencia permanente de personal PDVSA en trabajos, (3) PTS físicamente en sitio durante toda jornada. El Acta N° 265-2026 confirma que al 29/05/2026, con 45% de obra ejecutada, no había PTS en el sitio. La propia cláusula de sanción del oficio activa la <strong style="color:var(--red)">suspensión inmediata</strong> de la obra.
+        </div>
+        <div class="finding-norm">FUENTE: <span>Acta N° 265-2026 pág. 5 · "al momento de la inspección no se disponía de sello en el sitio"</span></div>
+      </div>
+
+      <div class="finding level-high">
+        <div class="finding-top">
+          <div class="finding-title">La Notificación N° 20159 adjunta al acta podría representar restricciones adicionales o revocación</div>
+          <span class="badge badge-high">⬤ DOCUMENTO CRÍTICO POR OBTENER</span>
+        </div>
+        <div class="finding-body">
+          El Acta de Hidrocarburos anexa la Notificación N° 20159 de la Superintendencia de Distribución Metropolitana de PDVSA GAS. Este documento es posterior al oficio TYD-25-CA-045 y podría representar restricciones adicionales, modificaciones o incluso una revocación parcial de los condicionamientos originales. Su contenido completo es urgente para determinar el estado jurídico actual de los permisos de intervención. Ciudadanos CBM debe solicitar copia formal de este documento.
+        </div>
+        <div class="finding-norm">FUENTE: <span>Acta N° 265-2026 · punto (6) — "Se anexa copia de la Notificación N° 20159 de PDVSA GAS COSRO/SD/Metropolitana"</span></div>
+      </div>
+    </section>
+
+    <!-- V. MARCO LEGAL -->
+    <section id="legal" class="section reveal">
+      <div class="section-header">
+        <span class="section-num">V</span>
+        <h2 class="section-title">Marco legal venezolano<br><em>vulnerado</em> — jerarquía normativa</h2>
+      </div>
+
+      <div class="pyramid">
+        <div class="pyramid-level">
+          <span class="pyramid-num">01</span>
+          <span class="pyramid-norm">Art. 156.16 CRBV</span>
+          <span class="pyramid-desc">Competencia exclusiva del Poder Nacional sobre gasoductos — nivel constitucional</span>
+          <span class="pyramid-sev"><span class="badge badge-critical">CONSTITUCIONAL</span></span>
+        </div>
+        <div class="pyramid-level">
+          <span class="pyramid-num">02</span>
+          <span class="pyramid-norm">Art. 127 CRBV</span>
+          <span class="pyramid-desc">Derecho a un ambiente seguro y ecológicamente equilibrado — base de acción de amparo</span>
+          <span class="pyramid-sev"><span class="badge badge-critical">CONSTITUCIONAL</span></span>
+        </div>
+        <div class="pyramid-level">
+          <span class="pyramid-num">03</span>
+          <span class="pyramid-norm">Ley Org. Hidrocarburos</span>
+          <span class="pyramid-desc">Arts. 3, 5 y 22 — reserva del Estado sobre infraestructura de gas metano</span>
+          <span class="pyramid-sev"><span class="badge badge-high">LEY ORGÁNICA</span></span>
+        </div>
+        <div class="pyramid-level">
+          <span class="pyramid-num">04</span>
+          <span class="pyramid-norm">LOPCYMAT</span>
+          <span class="pyramid-desc">Arts. 40, 53 y 56 — trabajos sin PTS = infracción muy grave · multa hasta 100 UT/trabajador</span>
+          <span class="pyramid-sev"><span class="badge badge-high">LEY ORGÁNICA</span></span>
+        </div>
+        <div class="pyramid-level">
+          <span class="pyramid-num">05</span>
+          <span class="pyramid-norm">Decreto N° 2.251</span>
+          <span class="pyramid-desc">AARN omitida — actividades sobre tuberías de alta presión requieren autorización ambiental</span>
+          <span class="pyramid-sev"><span class="badge badge-medium">DECRETO</span></span>
+        </div>
+        <div class="pyramid-level">
+          <span class="pyramid-num">06</span>
+          <span class="pyramid-norm">Ley Gestión Riesgos</span>
+          <span class="pyramid-desc">Arts. 9 y 23 — evaluación de riesgo tecnológico no realizada para gasoducto de abastecimiento metropolitano</span>
+          <span class="pyramid-sev"><span class="badge badge-medium">LEY</span></span>
+        </div>
+      </div>
+
+      <div class="finding level-medium">
+        <div class="finding-top">
+          <div class="finding-title">La alianza Alcaldía-Enlace sobre infraestructura de PDVSA es constitucionalmente ilegítima</div>
+          <span class="badge badge-critical">⬤ USURPACIÓN DE COMPETENCIAS</span>
+        </div>
+        <div class="finding-body">
+          El artículo 156, numeral 16 de la Constitución de la República Bolivariana de Venezuela establece que es competencia del Poder Nacional el régimen y administración de los servicios de gasoductos. Ningún ente municipal puede ceder, compartir ni avalar el uso de esta infraestructura para un proyecto urbanístico. La Alcaldía de Baruta, al suscribir una alianza estratégica para ejecutar el Proyecto Parque Lineal Río Guaire sobre tres gasoductos de PDVSA GAS, actuó fuera de sus competencias constitucionales.
+        </div>
+        <div class="finding-norm">NORMA: <span>Art. 156.16 CRBV · LOPPM Arts. 54 y 88 — el ámbito municipal no incluye infraestructura de hidrocarburos</span></div>
+      </div>
+    </section>
+
+    <!-- VI. ESCENARIO DE FALLA -->
+    <section id="riesgo" class="section reveal">
+      <div class="section-header">
+        <span class="section-num">VI</span>
+        <h2 class="section-title">Escenario de falla:<br><em>consecuencias</em> de una ruptura</h2>
+      </div>
+
+      <div class="risk-matrix">
+        <div class="risk-cell high">
+          <span class="risk-label">PROBABILIDAD</span>
+          <span class="risk-val">Alta — pilotes en franja activa con PTS ausente</span>
+        </div>
+        <div class="risk-cell high">
+          <span class="risk-label">IMPACTO</span>
+          <span class="risk-val">Catastrófico — gas metano a alta presión en zona urbana densa</span>
+        </div>
+        <div class="risk-cell high">
+          <span class="risk-label">NIVEL DE RIESGO</span>
+          <span class="risk-val" style="color:var(--red);font-weight:700">INACEPTABLE</span>
+        </div>
+      </div>
+
+      <div class="consequence">
+        <div class="consequence-title">① Ruptura del Ramal Caracas Lateral (10") — radio de afectación en zona urbana</div>
+        <div class="consequence-body">Una tubería de gas metano de 10" pulgadas a alta presión, en caso de ruptura por impacto de pilote o fatiga estructural progresiva, puede generar: <strong style="color:var(--text)">explosión con radio destructivo de decenas de metros</strong> sobre las edificaciones de Colinas de Bello Monte; <strong style="color:var(--text)">incendio de chorro a presión (jet fire)</strong> de altísima intensidad imposible de controlar hasta aislar el ramal; <strong style="color:var(--text)">onda expansiva</strong> sobre comercios y residencias circundantes; e <strong style="color:var(--text)">interrupción del suministro de gas metano a la Gran Caracas</strong> por tiempo indeterminado. Este ramal forma parte de la infraestructura crítica de la ciudad.</div>
+      </div>
+
+      <div class="consequence">
+        <div class="consequence-title">② Daño por fatiga acumulada — el riesgo invisible más peligroso</div>
+        <div class="consequence-body">El daño más insidioso que PILPERCA puede generar no es la perforación directa sino la <strong style="color:var(--text)">fatiga acumulada por vibración</strong>. La vibradora de pilotes crea ondas sísmicas que se propagan por el suelo y alcanzan la tubería. Las microfisuras resultantes no son detectables visualmente ni con inspección superficial — requieren inspección interna ultrasónica que PDVSA debería realizar. Este tipo de daño puede desarrollarse durante meses antes de manifestarse como ruptura súbita. No existe en el expediente ningún estudio de análisis de fatiga de los ductos existentes previo al inicio de la obra.</div>
+      </div>
+
+      <div class="consequence">
+        <div class="consequence-title">③ Zona de afectación — alta densidad de población y actividad comercial</div>
+        <div class="consequence-body">El tramo intervenido de 1.050 metros sobre la Avenida Principal de Colinas de Bello Monte, documentado en el Acta de Hidrocarburos, concentra: tránsito peatonal intenso, establecimientos comerciales de alta concurrencia (incluyendo los mencionados en el propio estudio de impacto vial de la Alcaldía: Daka, Ferretotal, Supermercado, Bodegón CineCitta), transporte público y vehículos privados. Una falla en este entorno tendría consecuencias de masa crítica sobre una comunidad que no fue consultada sobre los riesgos de esta intervención.</div>
+      </div>
+
+      <div class="verdict-box">
+        <div class="verdict-label">● DICTAMEN DE RIESGO</div>
+        <p class="verdict-text">"Una obra que coloca pilotes perforados en la franja de máxima seguridad de tres gasoductos de alta presión, sin PTS vigente en sitio, sin estudios de fatiga certificados y sin habilitación corporativa del nivel requerido por la normativa PDVSA, representa un riesgo tecnológico de categoría inaceptable para la comunidad de Colinas de Bello Monte y para el suministro de gas de la Gran Caracas. La ejecución al 45% de avance no reduce el riesgo — lo incrementa, porque el daño por fatiga ya está siendo acumulado sin que ningún organismo lo esté monitoreando."</p>
+      </div>
+    </section>
+
+    <!-- VII. ACCIONES -->
+    <section id="acciones" class="section reveal">
+      <div class="section-header">
+        <span class="section-num">VII</span>
+        <h2 class="section-title">Ruta de acción<br><em>técnico-legal</em> inmediata</h2>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">01</div>
+        <div class="action-content">
+          <div class="action-title">Denuncia ante el INPSASEL — paralización inmediata por LOPCYMAT</div>
+          <div class="action-body">El Instituto Nacional de Prevención, Salud y Seguridad Laborales tiene potestad de paralizar obras de forma inmediata bajo la LOPCYMAT. El Acta N° 265-2026 del Ministerio de Hidrocarburos constituye prueba documental directa de trabajos sin PTS en zona de riesgo por gas de alta presión. INPSASEL puede actuar sin necesidad de trámite previo ante la Alcaldía.</div>
+          <div class="action-norm">LOPCYMAT Art. 132 · Multas hasta 100 UT/trabajador expuesto + orden de paralización</div>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">02</div>
+        <div class="action-content">
+          <div class="action-title">Denuncia ante el Ministerio de Hidrocarburos — División de Fiscalización</div>
+          <div class="action-body">Solicitar formalmente la paralización de la obra invocando el incumplimiento de los condicionamientos del oficio PDVG-DIR-TYD-25-CA-045. El propio oficio establece la "suspensión inmediata" como consecuencia. La denuncia debe acompañarse con copia del Acta N° 265-2026 como prueba del incumplimiento documentado por funcionarios del mismo Ministerio.</div>
+          <div class="action-norm">Oficio TYD-25-CA-045 · Cláusula de suspensión inmediata por incumplimiento</div>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">03</div>
+        <div class="action-content">
+          <div class="action-title">Solicitud formal a PDVSA GAS — VP Operaciones — Notificación N° 20159</div>
+          <div class="action-body">Requerir copia certificada de la Notificación N° 20159 de la Superintendencia de Distribución Metropolitana adjunta al Acta, y confirmación de si existe habilitación formal a nivel de Vicepresidencia de Operaciones para esta intervención. Si PDVSA GAS no puede confirmar esa habilitación, la obra carece de autorización corporativa válida bajo IR-S-16.</div>
+          <div class="action-norm">PDVSA IR-S-16 Sección 7 · Ley de Acceso a la Información · Art. 143 CRBV</div>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">04</div>
+        <div class="action-content">
+          <div class="action-title">Acción de amparo constitucional — derecho a ambiente seguro y usurpación de competencias</div>
+          <div class="action-body">Interponer ante el Tribunal competente acción de amparo constitucional por violación del derecho a un ambiente seguro (Art. 127 CRBV) y por usurpación de competencias del Poder Nacional por parte de la Alcaldía de Baruta (Art. 156.16 CRBV). El expediente acumulado — Acta N° 265-2026, oficio PDVSA, respuesta SMB 151 — constituye el sustento probatorio.</div>
+          <div class="action-norm">Arts. 127 y 156.16 CRBV · Ley Orgánica de Amparo · Usurpación de competencias del Poder Nacional</div>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">05</div>
+        <div class="action-content">
+          <div class="action-title">Solicitud al Cuerpo de Bomberos Metropolitanos — inspección de seguridad contra incendio</div>
+          <div class="action-body">Requerir al Cuerpo de Bomberos Metropolitanos de Caracas una inspección de seguridad contra incendio en la zona de la obra, para verificar cumplimiento de las normas de seguridad ante riesgo de ignición de gas. Los bomberos pueden emitir órdenes de suspensión de actividades en zona de riesgo de incendio independientemente de la Alcaldía o el Ministerio.</div>
+          <div class="action-norm">Ley de Bomberos del Estado Bolivariano de Miranda · COVENIN 823 — Seguridad contra incendios</div>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">06</div>
+        <div class="action-content">
+          <div class="action-title">Solicitar acceso al estudio de impacto ambiental confirmado en expediente</div>
+          <div class="action-body">La Sindicatura Municipal (SMB 151) confirmó la existencia de un estudio de impacto ambiental y sociocultural en el expediente administrativo. Este estudio es público por mandato del Art. 143 CRBV y debe contener la evaluación de riesgos sobre la infraestructura de gas. Su análisis técnico podría revelar que los riesgos documentados en el Acta N° 265-2026 no fueron considerados en el estudio.</div>
+          <div class="action-norm">Art. 143 CRBV · Ley de Acceso a la Información · SMB 151 Sec. 2(d)</div>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-num">07</div>
+        <div class="action-content">
+          <div class="action-title">Requerir estudio de análisis de fatiga de ductos existentes a PDVSA GAS</div>
+          <div class="action-body">Solicitar formalmente que PDVSA GAS realice una inspección interna ultrasónica de los tres ramales afectados para detectar microfisuras producidas por la vibración de los pilotes perforados. Esta inspección debió realizarse antes del inicio de las obras y debe realizarse ahora con urgencia, dado que la obra lleva más de 2 meses de ejecución. Su omisión podría constituir negligencia operacional documentable.</div>
+          <div class="action-norm">PDVSA IR-S-16 · API 1163 — Inspección en línea de tuberías · COVENIN 1040</div>
+        </div>
+      </div>
+
+    </section>
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer class="footer">
+  <div class="footer-org">
+    <strong>Ciudadanos CBM</strong> · Iniciativa ciudadana Colinas de Bello Monte<br>
+    <span style="color:var(--text3)">Corredor Biológico CBM · Caracas, Venezuela · linktr.ee/CiudadanosCBM</span>
+  </div>
+  <div class="footer-date">
+    <span style="font-family:var(--mono);font-size:10px;color:var(--text3)">Generado:</span><br>
+    <span style="color:var(--text2)">30 de mayo de 2026</span><br>
+    <span style="color:var(--text3)">Basado en documentos oficiales públicos</span>
+  </div>
+</footer>
+
+<script>
+// Scroll reveal
+const reveals = document.querySelectorAll('.reveal');
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); } });
+}, { threshold: 0.08 });
+reveals.forEach(r => obs.observe(r));
+
+// Active nav on scroll
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.nav-link[href^="#"]');
+const scrollObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if(e.isIntersecting) {
+      navLinks.forEach(l => l.classList.remove('active'));
+      const active = document.querySelector(`.nav-link[href="#${e.target.id}"]`);
+      if(active) active.classList.add('active');
+    }
+  });
+}, { rootMargin: '-30% 0px -60% 0px' });
+sections.forEach(s => scrollObs.observe(s));
+</script>
+</body>
+</html>
